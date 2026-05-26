@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分账计算器</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root {
+  --bg: #ece7de;
+  --card: #fcfaf5;
+  --card-elev: #ffffff;
+  --ink: #2d2620;
+  --ink-soft: #6b5d4f;
+  --ink-mute: #9c8c75;
+  --line: #e0d6c2;
+  --line-soft: #f0eadd;
+  --accent: #c8956d;
+  --accent-soft: #ffe69e;
+  --positive: #6b8e4e;
+  --warn: #d97757;
+  --shadow: 0 1px 2px rgba(45,38,32,0.04), 0 4px 18px rgba(45,38,32,0.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  font-feature-settings: "tnum";
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 28px 60px;
+}
+
+header {
+  margin-bottom: 28px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+header .title-block h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+header .title-block .sub {
+  margin-top: 6px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+header .session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+header .session label {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+header .session input {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--ink);
+  min-width: 160px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 920px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.card + .card { margin-top: 20px; }
+
+.card h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  letter-spacing: 0.02em;
+}
+.card h2 .badge {
+  display: inline-block;
+  width: 6px;
+  height: 14px;
+  background: var(--accent);
+  margin-right: 8px;
+  vertical-align: -2px;
+  border-radius: 2px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.field input {
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card-elev);
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200,149,109,.18);
+}
+.field input::placeholder { color: #c4b8a4; font-weight: 400; }
+
+.total-field input {
+  font-size: 22px;
+  background: linear-gradient(0deg, var(--accent-soft) 0%, var(--accent-soft) 32%, var(--card-elev) 32%, var(--card-elev) 100%);
+}
+
+.row3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.sales-table { margin-top: 4px; }
+.sales-head, .sales-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.6fr 1.1fr 32px;
+  gap: 10px;
+  align-items: center;
+}
+.sales-head {
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 4px 4px 10px;
+  border-bottom: 1px dashed var(--line);
+  font-weight: 500;
+}
+.sales-head > div:nth-child(4) { text-align: right; padding-right: 4px; }
+
+.sales-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.sales-row:last-child { border-bottom: none; }
+.sales-row input {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--card-elev);
+  color: var(--ink);
+  outline: none;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.sales-row input:focus { border-color: var(--accent); }
+.sales-row .commission {
+  font-weight: 700;
+  text-align: right;
+  padding-right: 4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.row-del {
+  background: transparent;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--ink-mute);
+  font-size: 18px;
+  line-height: 1;
+  transition: background .15s, color .15s;
+}
+.row-del:hover {
+  background: #f6efe1;
+  color: var(--warn);
+}
+
+.btn-add {
+  background: transparent;
+  border: 1px dashed var(--accent);
+  color: var(--accent);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.btn-add:hover {
+  background: rgba(200,149,109,.1);
+  color: #a47750;
+}
+
+.sales-foot {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sales-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 14px;
+  background: var(--card-elev);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.sales-total .lab { color: var(--ink-soft); font-size: 13px; }
+.sales-total .val {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.tip {
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: none;
+}
+.tip.warn {
+  color: var(--warn);
+  background: rgba(217,119,87,.08);
+  border-left: 3px solid var(--warn);
+}
+.tip.ok {
+  color: var(--positive);
+  background: rgba(107,142,78,.08);
+  border-left: 3px solid var(--positive);
+}
+.tip.info {
+  color: #5a7da8;
+  background: rgba(90,125,168,.08);
+  border-left: 3px solid #5a7da8;
+}
+
+.sales-auto {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--accent-soft);
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+.sales-auto .lab {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.sales-auto .lab .formula {
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin-left: 4px;
+  font-size: 12px;
+}
+.sales-auto .val {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.optional-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(200,149,109,.14);
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+  font-weight: 500;
+  vertical-align: 1px;
+}
+
+.sales-hint {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+  padding: 0 2px;
+  line-height: 1.55;
+}
+
+/* 结果区 */
+#result-card {
+  padding: 28px 28px 26px;
+}
+.result-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 0 14px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid var(--ink);
+}
+.result-header .title {
+  font-size: 18px;
+  font-weight: 700;
+}
+.result-header .total {
+  background: var(--accent-soft);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-section {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.result-section:last-child { border-bottom: none; padding-bottom: 4px; }
+
+.result-section .section-head {
+  font-size: 11px;
+  color: var(--ink-mute);
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  font-variant-numeric: tabular-nums;
+}
+.result-row .lab { color: var(--ink); font-size: 14px; }
+.result-row .val { font-weight: 600; font-size: 15px; }
+
+.result-row.sub { padding: 4px 0 4px 14px; }
+.result-row.sub .lab { color: var(--ink-soft); font-size: 13px; }
+.result-row.sub .val { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+
+.result-row.cost .val { color: var(--ink-soft); }
+.result-row.cost .val::before { content: "− "; color: var(--ink-mute); font-weight: 500; }
+
+.result-row.subtotal {
+  margin-top: 6px;
+  padding-top: 12px;
+  padding-bottom: 6px;
+  border-top: 1px dashed var(--line);
+}
+.result-row.subtotal .lab { font-weight: 700; font-size: 15px; }
+.result-row.subtotal .val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--accent-soft);
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+
+.result-row.share { padding: 10px 0; }
+.result-row.share .lab {
+  font-size: 15px;
+  font-weight: 600;
+}
+.result-row.share .pct {
+  color: var(--ink-mute);
+  font-weight: 400;
+  font-size: 12px;
+  margin-left: 8px;
+  letter-spacing: 0.04em;
+}
+.result-row.share .val {
+  font-size: 18px;
+  font-weight: 700;
+}
+.result-row.share + .result-row.share {
+  border-top: 1px solid var(--line-soft);
+}
+
+.result-row.sales-head-row .lab { font-weight: 700; }
+.result-row.sales-head-row .val { font-weight: 700; }
+
+.actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+}
+.btn {
+  flex: 1;
+  padding: 13px 16px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fcfaf5;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .08s, background .15s;
+  letter-spacing: 0.05em;
+  font-family: inherit;
+}
+.btn:hover { background: #1f1a15; }
+.btn:active { transform: translateY(1px); }
+.btn.secondary {
+  background: transparent;
+  color: var(--ink);
+}
+.btn.secondary:hover { background: rgba(45,38,32,.05); }
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: #fcfaf5;
+  padding: 11px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  z-index: 99;
+  box-shadow: 0 8px 24px rgba(45,38,32,.18);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast.error { background: var(--warn); }
+
+footer {
+  margin-top: 36px;
+  text-align: center;
+  color: var(--ink-mute);
+  font-size: 12px;
+}
+footer a { color: var(--accent); text-decoration: none; }
+
+/* 历史记录 */
+.history-card { margin-top: 24px; }
+.history-card h2 .badge { background: #5a7da8; }
+
+.history-empty {
+  color: var(--ink-mute);
+  font-size: 13px;
+  text-align: center;
+  padding: 28px 16px;
+  background: var(--card-elev);
+  border-radius: 8px;
+  border: 1px dashed var(--line);
+  line-height: 1.6;
+}
+
+.history-head, .history-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1.2fr 168px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  font-variant-numeric: tabular-nums;
+}
+.history-head {
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--line);
+  font-weight: 500;
+}
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.history-row {
+  background: var(--card-elev);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: border-color .15s, transform .08s, box-shadow .15s;
+}
+.history-row:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(45,38,32,.06);
+}
+.h-name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-income { font-size: 13px; color: var(--ink-soft); }
+.h-remain { font-size: 14px; color: var(--ink); font-weight: 700; }
+.h-date { font-size: 12px; color: var(--ink-mute); }
+.h-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.h-actions button {
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-family: inherit;
+  transition: all .12s;
+}
+.h-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.h-actions button[data-act="del"]:hover {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: rgba(217,119,87,.06);
+}
+
+@media (max-width: 720px) {
+  .history-head { display: none; }
+  .history-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "name date" "income remain" "actions actions";
+    gap: 6px 12px;
+  }
+  .h-name { grid-area: name; }
+  .h-date { grid-area: date; text-align: right; }
+  .h-income { grid-area: income; }
+  .h-remain { grid-area: remain; text-align: right; }
+  .h-actions { grid-area: actions; justify-content: stretch; }
+  .h-actions button { flex: 1; padding: 7px 8px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title-block">
+      <h1>分账计算器</h1>
+      <div class="sub">输入收入与成本，自动计算销售提成与团队分账</div>
+    </div>
+    <div class="session">
+      <label>批次：</label>
+      <input type="text" id="session-name" placeholder="如 5.16-5.17 vibe coding">
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- 左栏：输入区 -->
+    <div>
+      <div class="card">
+        <h2><span><span class="badge"></span>收入与成本</span></h2>
+        <div class="field total-field">
+          <label>总收入（元）</label>
+          <input type="number" id="income" placeholder="例如 25580" step="0.01" inputmode="decimal">
+        </div>
+        <div class="row3">
+          <div class="field">
+            <label>房屋水电</label>
+            <input type="number" id="cost-rent" placeholder="0" step="0.01" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>茶歇</label>
+            <input type="number" id="cost-tea" placeholder="0" step="0.01" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>差旅</label>
+            <input type="number" id="cost-travel" placeholder="0" step="0.01" inputmode="decimal">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>
+          <span><span class="badge"></span>销售提成<span class="optional-tag">明细可选</span></span>
+          <button class="btn-add" id="add-sale">+ 添加销售</button>
+        </h2>
+        <div class="sales-auto">
+          <span class="lab">销售提成合计<span class="formula">＝ 总收入 × 10%</span></span>
+          <span class="val" id="sales-total">¥ 0.00</span>
+        </div>
+        <div class="sales-hint">填入每个销售的课程单价 × 人数，自动把上方提成总额按贡献分到每个人。不填也不影响其他分账。</div>
+        <div class="sales-table">
+          <div class="sales-head">
+            <div>销售</div>
+            <div>课程单价</div>
+            <div>人数</div>
+            <div>提成（×10%）</div>
+            <div></div>
+          </div>
+          <div id="sales-rows"></div>
+        </div>
+        <div class="sales-foot">
+          <div class="tip warn" id="warn-tip"></div>
+          <div class="tip info" id="info-tip"></div>
+          <div class="tip ok" id="ok-tip">明细分配完整 ✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右栏：结果 -->
+    <div>
+      <div class="card" id="result-card">
+        <div class="result-header">
+          <div class="title" id="result-title">分账明细</div>
+          <div class="total">总收入 ¥ <span id="r-income">0.00</span></div>
+        </div>
+
+        <div class="result-section">
+          <div class="section-head">成本扣除</div>
+          <div class="result-row cost"><span class="lab">房屋水电</span><span class="val" id="r-rent">0.00</span></div>
+          <div class="result-row cost"><span class="lab">茶歇</span><span class="val" id="r-tea">0.00</span></div>
+          <div class="result-row cost"><span class="lab">差旅</span><span class="val" id="r-travel">0.00</span></div>
+        </div>
+
+        <div class="result-section">
+          <div class="section-head">销售团队（提成 10%）</div>
+          <div class="result-row sales-head-row"><span class="lab">销售合计</span><span class="val" id="r-sales-total">¥ 0.00</span></div>
+          <div id="r-sales-list"></div>
+        </div>
+
+        <div class="result-section">
+          <div class="result-row subtotal"><span class="lab">剩余可分</span><span class="val" id="r-remain">¥ 0.00</span></div>
+        </div>
+
+        <div class="result-section">
+          <div class="section-head">团队分账</div>
+          <div class="result-row share">
+            <span class="lab">主讲老师<span class="pct">40%</span></span>
+            <span class="val" id="r-teacher">¥ 0.00</span>
+          </div>
+          <div class="result-row share">
+            <span class="lab">技术支持<span class="pct">30%</span></span>
+            <span class="val" id="r-tech">¥ 0.00</span>
+          </div>
+          <div class="result-row share">
+            <span class="lab">课程负责<span class="pct">20%</span></span>
+            <span class="val" id="r-lead">¥ 0.00</span>
+          </div>
+          <div class="result-row share">
+            <span class="lab">课程管理<span class="pct">10%</span></span>
+            <span class="val" id="r-manage">¥ 0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn secondary" id="btn-copy">复制为表格</button>
+        <button class="btn" id="btn-export">导出图片</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card history-card">
+    <h2>
+      <span><span class="badge"></span>历史记录</span>
+      <button class="btn-add" id="archive-btn">⬇ 保存当前到历史</button>
+    </h2>
+    <div id="history-container"></div>
+  </div>
+
+  <footer>分账计算器 · 数据仅保留在本机浏览器，不上传任何服务器</footer>
+</div>
+
+<div class="toast" id="toast">已复制</div>
+
+<script>
+const round2 = n => Math.round(n * 100) / 100;
+const yuan = n => '¥ ' + round2(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = n => round2(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const plain = n => round2(n).toFixed(2);
+
+const $ = id => document.getElementById(id);
+
+const STORAGE_KEY = 'profit-calc-state-v1';
+
+const state = {
+  session: '',
+  income: '',
+  rent: '',
+  tea: '',
+  travel: '',
+  sales: [
+    { name: '', price: '', count: '' },
+  ],
+};
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    Object.assign(state, s);
+    if (!Array.isArray(state.sales) || state.sales.length === 0) {
+      state.sales = [{ name: '', price: '', count: '' }];
+    }
+  } catch (e) {}
+}
+
+function readInputs() {
+  state.session = $('session-name').value;
+  state.income = $('income').value;
+  state.rent = $('cost-rent').value;
+  state.tea = $('cost-tea').value;
+  state.travel = $('cost-travel').value;
+}
+
+function applyStateToInputs() {
+  $('session-name').value = state.session || '';
+  $('income').value = state.income || '';
+  $('cost-rent').value = state.rent || '';
+  $('cost-tea').value = state.tea || '';
+  $('cost-travel').value = state.travel || '';
+}
+
+function n(v) { return parseFloat(v) || 0; }
+
+function mergeSalesByName(sales) {
+  const map = new Map();
+  const order = [];
+  sales.forEach(s => {
+    if (!s.name && s.price === 0 && s.count === 0) return;
+    const key = s.name || '—';
+    if (!map.has(key)) {
+      map.set(key, { name: key, items: [], commission: 0, gross: 0 });
+      order.push(key);
+    }
+    const entry = map.get(key);
+    entry.items.push({ price: s.price, count: s.count });
+    entry.commission += s.commission;
+    entry.gross += s.gross;
+  });
+  return order.map(k => map.get(k));
+}
+
+function compute() {
+  const income = n(state.income);
+  const rent = n(state.rent);
+  const tea = n(state.tea);
+  const travel = n(state.travel);
+  const sales = state.sales.map(s => {
+    const price = n(s.price);
+    const count = n(s.count);
+    const gross = price * count;
+    const commission = gross * 0.1;
+    return { name: (s.name || '').trim(), price, count, gross, commission };
+  });
+  const salesTotal = income * 0.1;
+  const salesAssigned = sales.reduce((a, b) => a + b.commission, 0);
+  const salesGross = sales.reduce((a, b) => a + b.gross, 0);
+  const hasDetails = sales.some(s => s.price > 0 || s.count > 0);
+  const remain = income - rent - tea - travel - salesTotal;
+  return {
+    income, rent, tea, travel,
+    sales, salesTotal, salesAssigned, salesGross, hasDetails, remain,
+    teacher: remain * 0.4,
+    tech: remain * 0.3,
+    lead: remain * 0.2,
+    manage: remain * 0.1,
+  };
+}
+
+function renderSalesRows() {
+  const root = $('sales-rows');
+  root.innerHTML = '';
+  state.sales.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'sales-row';
+    row.innerHTML =
+      `<input type="text" placeholder="姓名" data-i="${i}" data-k="name" value="${escapeHtml(s.name)}">` +
+      `<input type="number" placeholder="如 1299" step="0.01" inputmode="decimal" data-i="${i}" data-k="price" value="${escapeHtml(s.price)}">` +
+      `<input type="number" placeholder="人数" step="1" min="0" inputmode="numeric" data-i="${i}" data-k="count" value="${escapeHtml(s.count)}">` +
+      `<div class="commission" data-com="${i}">¥ 0.00</div>` +
+      `<button class="row-del" data-del="${i}" title="删除这行">×</button>`;
+    root.appendChild(row);
+  });
+  root.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const i = +e.target.dataset.i;
+      const k = e.target.dataset.k;
+      state.sales[i][k] = e.target.value;
+      computeAndRender();
+    });
+  });
+  root.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const i = +e.currentTarget.dataset.del;
+      state.sales.splice(i, 1);
+      if (state.sales.length === 0) state.sales.push({ name: '', price: '', count: '' });
+      renderSalesRows();
+      computeAndRender();
+    });
+  });
+}
+
+function escapeHtml(v) {
+  return String(v == null ? '' : v)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function computeAndRender() {
+  readInputs();
+  const c = compute();
+
+  c.sales.forEach((s, i) => {
+    const el = document.querySelector(`[data-com="${i}"]`);
+    if (el) el.textContent = yuan(s.commission);
+  });
+
+  $('sales-total').textContent = yuan(c.salesTotal);
+
+  const tipW = $('warn-tip');
+  const tipI = $('info-tip');
+  const tipO = $('ok-tip');
+  tipW.style.display = 'none';
+  tipI.style.display = 'none';
+  tipO.style.display = 'none';
+  if (c.income > 0 && c.hasDetails) {
+    const diff = c.salesAssigned - c.salesTotal;
+    if (Math.abs(diff) <= 0.01) {
+      tipO.style.display = 'block';
+      tipO.textContent = `明细已完整分配 ${yuan(c.salesTotal)} ✓`;
+    } else if (diff > 0) {
+      tipW.style.display = 'block';
+      tipW.textContent = `⚠ 明细分配 ${num(c.salesAssigned)} 元，超出销售提成 ${num(c.salesTotal)} 元（多 ${num(diff)}）`;
+    } else {
+      tipI.style.display = 'block';
+      tipI.textContent = `明细已分配 ${num(c.salesAssigned)} / ${num(c.salesTotal)}，还有 ${num(-diff)} 元未填`;
+    }
+  }
+
+  $('result-title').textContent = state.session ? state.session + ' 分账明细' : '分账明细';
+  $('r-income').textContent = num(c.income);
+  $('r-rent').textContent = num(c.rent);
+  $('r-tea').textContent = num(c.tea);
+  $('r-travel').textContent = num(c.travel);
+  $('r-sales-total').textContent = yuan(c.salesTotal);
+  $('r-remain').textContent = yuan(c.remain);
+  $('r-teacher').textContent = yuan(c.teacher);
+  $('r-tech').textContent = yuan(c.tech);
+  $('r-lead').textContent = yuan(c.lead);
+  $('r-manage').textContent = yuan(c.manage);
+
+  const list = $('r-sales-list');
+  list.innerHTML = '';
+  mergeSalesByName(c.sales).forEach(g => {
+    const inner = g.items.map(it => `${num(it.price)} × ${it.count}`).join(' + ');
+    const itemsLabel = g.items.length > 1 ? `(${inner}) × 10%` : `${inner} × 10%`;
+    const row = document.createElement('div');
+    row.className = 'result-row sub';
+    row.innerHTML = `<span class="lab">${escapeHtml(g.name)}（${itemsLabel}）</span><span class="val">${yuan(g.commission)}</span>`;
+    list.appendChild(row);
+  });
+
+  saveState();
+}
+
+function buildMarkdown() {
+  const c = compute();
+  const lines = [];
+  const title = state.session ? state.session + ' · 分账明细' : '分账明细';
+  lines.push(`# ${title}`);
+  lines.push('');
+  lines.push(`**总收入：¥${plain(c.income)}**`);
+  lines.push('');
+  lines.push('| 项目 | 明细 | 金额 |');
+  lines.push('|---|---|---|');
+  lines.push(`| 成本 | 房屋水电 | ¥${plain(c.rent)} |`);
+  lines.push(`| 成本 | 茶歇 | ¥${plain(c.tea)} |`);
+  lines.push(`| 成本 | 差旅 | ¥${plain(c.travel)} |`);
+  lines.push(`| 销售团队 | 合计（10%） | ¥${plain(c.salesTotal)} |`);
+  mergeSalesByName(c.sales).forEach(g => {
+    const inner = g.items.map(it => `${plain(it.price)} × ${it.count}`).join(' + ');
+    const itemsLabel = g.items.length > 1 ? `(${inner}) × 10%` : `${inner} × 10%`;
+    lines.push(`|   | ${g.name}（${itemsLabel}） | ¥${plain(g.commission)} |`);
+  });
+  lines.push(`| **剩余可分** |  | **¥${plain(c.remain)}** |`);
+  lines.push(`| 主讲老师 | 40% | ¥${plain(c.teacher)} |`);
+  lines.push(`| 技术支持 | 30% | ¥${plain(c.tech)} |`);
+  lines.push(`| 课程负责 | 20% | ¥${plain(c.lead)} |`);
+  lines.push(`| 课程管理 | 10% | ¥${plain(c.manage)} |`);
+  return lines.join('\n');
+}
+
+function showToast(msg, type) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type === 'error' ? ' error' : '');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+
+$('btn-copy').addEventListener('click', async () => {
+  try {
+    await copyText(buildMarkdown());
+    showToast('已复制为 Markdown 表格');
+  } catch (e) {
+    showToast('复制失败：' + e.message, 'error');
+  }
+});
+
+$('btn-export').addEventListener('click', async () => {
+  if (typeof html2canvas === 'undefined') {
+    showToast('截图库未加载，请检查网络后刷新', 'error');
+    return;
+  }
+  const node = $('result-card');
+  const oldShadow = node.style.boxShadow;
+  node.style.boxShadow = 'none';
+  try {
+    const canvas = await html2canvas(node, {
+      backgroundColor: '#fcfaf5',
+      scale: 2,
+      useCORS: true,
+    });
+    const link = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 10);
+    const safeName = (state.session || '分账明细').replace(/[\\/:*?"<>|]/g, '_');
+    link.download = `${safeName}_${ts}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('图片已导出');
+  } catch (e) {
+    showToast('导出失败：' + e.message, 'error');
+  } finally {
+    node.style.boxShadow = oldShadow;
+  }
+});
+
+$('add-sale').addEventListener('click', () => {
+  state.sales.push({ name: '', price: '', count: '' });
+  renderSalesRows();
+  computeAndRender();
+});
+
+['income', 'cost-rent', 'cost-tea', 'cost-travel', 'session-name'].forEach(id => {
+  $(id).addEventListener('input', computeAndRender);
+});
+
+// ===== 历史记录 =====
+const HISTORY_KEY = 'profit-calc-history-v1';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch (e) { return []; }
+}
+function persistHistory(list) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch (e) {}
+}
+
+function archiveCurrent() {
+  readInputs();
+  const c = compute();
+  if (c.income <= 0) {
+    showToast('请先填入总收入再保存', 'error');
+    return;
+  }
+  const name = (state.session || '').trim() || `分账 ${new Date().toLocaleDateString('zh-CN')}`;
+  const list = loadHistory();
+  const sameNameIdx = state.session ? list.findIndex(h => h.session === name) : -1;
+  const record = {
+    id: sameNameIdx >= 0 ? list[sameNameIdx].id : Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    session: name,
+    timestamp: Date.now(),
+    income: c.income,
+    remain: c.remain,
+    snapshot: JSON.parse(JSON.stringify(state)),
+  };
+  if (sameNameIdx >= 0) {
+    list[sameNameIdx] = record;
+    showToast(`已更新「${name}」`);
+  } else {
+    list.unshift(record);
+    showToast(`已保存「${name}」到历史`);
+  }
+  persistHistory(list);
+  renderHistory();
+}
+
+function deleteHistory(id) {
+  if (!confirm('删除这条历史记录？')) return;
+  persistHistory(loadHistory().filter(h => h.id !== id));
+  renderHistory();
+  showToast('已删除');
+}
+
+function loadFromHistory(id) {
+  const rec = loadHistory().find(h => h.id === id);
+  if (!rec) return;
+  if (!confirm(`加载「${rec.session}」会替换当前输入，确定？`)) return;
+  Object.assign(state, JSON.parse(JSON.stringify(rec.snapshot)));
+  if (!Array.isArray(state.sales) || state.sales.length === 0) {
+    state.sales = [{ name: '', price: '', count: '' }];
+  }
+  applyStateToInputs();
+  renderSalesRows();
+  computeAndRender();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast(`已加载「${rec.session}」`);
+}
+
+async function copyFromHistory(id) {
+  const rec = loadHistory().find(h => h.id === id);
+  if (!rec) return;
+  const backup = JSON.parse(JSON.stringify(state));
+  Object.assign(state, JSON.parse(JSON.stringify(rec.snapshot)));
+  try {
+    await copyText(buildMarkdown());
+    showToast(`已复制「${rec.session}」`);
+  } catch (e) {
+    showToast('复制失败：' + e.message, 'error');
+  } finally {
+    Object.assign(state, backup);
+  }
+}
+
+function formatHistoryDate(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const yest = new Date(now); yest.setDate(now.getDate() - 1);
+  const isYest = d.toDateString() === yest.toDateString();
+  const hm = d.toTimeString().slice(0, 5);
+  if (sameDay) return `今天 ${hm}`;
+  if (isYest) return `昨天 ${hm}`;
+  if (d.getFullYear() === now.getFullYear()) {
+    return `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+  }
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function renderHistory() {
+  const root = $('history-container');
+  const list = loadHistory();
+  if (list.length === 0) {
+    root.innerHTML = `<div class="history-empty">还没有历史记录<br><span style="font-size:11px">在上方算完后，点「保存当前到历史」即可归档（同批次名会自动覆盖）</span></div>`;
+    return;
+  }
+  const rows = list.map(h => `
+    <div class="history-row" data-id="${h.id}">
+      <div class="h-name">${escapeHtml(h.session)}</div>
+      <div class="h-income">收入 ¥${num(h.income)}</div>
+      <div class="h-remain">剩余 ¥${num(h.remain)}</div>
+      <div class="h-date">${formatHistoryDate(h.timestamp)}</div>
+      <div class="h-actions">
+        <button data-act="load" data-id="${h.id}" title="加载到输入区">查看</button>
+        <button data-act="copy" data-id="${h.id}" title="复制为表格">复制</button>
+        <button data-act="del" data-id="${h.id}" title="删除">删</button>
+      </div>
+    </div>`).join('');
+  root.innerHTML = `
+    <div class="history-head">
+      <div>批次</div>
+      <div>总收入</div>
+      <div>剩余可分</div>
+      <div>保存时间</div>
+      <div></div>
+    </div>
+    <div class="history-list">${rows}</div>`;
+  root.querySelectorAll('.h-actions button').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const act = e.currentTarget.dataset.act;
+      const id = e.currentTarget.dataset.id;
+      if (act === 'load') loadFromHistory(id);
+      else if (act === 'copy') copyFromHistory(id);
+      else if (act === 'del') deleteHistory(id);
+    });
+  });
+}
+
+$('archive-btn').addEventListener('click', archiveCurrent);
+
+loadState();
+applyStateToInputs();
+renderSalesRows();
+computeAndRender();
+renderHistory();
+</script>
+</body>
+</html>
